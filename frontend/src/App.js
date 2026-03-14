@@ -6,36 +6,61 @@ import DriverDashboard from "./components/driverDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login";
-
 import Layout from "./components/layout/Layout";
 
 function App() {
 
   const [role, setRole] = useState(null);
 
+  // If not logged in → show login page
   if (!role) return <Login setRole={setRole} />;
 
-  return (
-    <>
-      <Navbar role={role} />
 
-      <Layout>
+  // =============================
+  // STUDENT LOGIN
+  // =============================
+  if (role === "student") {
+    return (
+      <Routes>
+        <Route path="/" element={<StudentDashboard />} />
+      </Routes>
+    );
+  }
 
-        <Routes>
 
-          <Route path="/Students" element={<StudentDashboard />} />
+  // =============================
+  // DRIVER LOGIN
+  // =============================
+  if (role === "driver") {
+    return (
+      <Routes>
+        <Route path="/" element={<DriverDashboard />} />
+      </Routes>
+    );
+  }
 
-          {/* <Route path="/buses" element={<DriverDashboard />} /> */}
 
-          <Route path="/Drivers" element={<DriverDashboard />} />
+  // =============================
+  // ADMIN LOGIN
+  // =============================
+  if (role === "admin") {
+    return (
+      <>
+        <Navbar role={role} />
 
-          <Route path="/Admin" element={<AdminDashboard />} />
+        <Layout>
+          <Routes>
 
-        </Routes>
+            <Route path="/" element={<AdminDashboard />} />
+            <Route path="/drivers" element={<DriverDashboard />} />
+            <Route path="/students" element={<StudentDashboard />} />
 
-      </Layout>
-    </>
-  );
+          </Routes>
+        </Layout>
+      </>
+    );
+  }
+
 }
 
 export default App;
