@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bus List</title>
+</head>
+<body>
+
+<h2>Bus List</h2>
+
+<ul id="busList"></ul>
+
+<script>
+fetch("http://localhost:5000/api/buses")
+  .then(response => response.json())
+  .then(data => {
+
+      const busList = document.getElementById("busList");
+
+      data.forEach(bus => {
+          const li = document.createElement("li");
+          li.textContent = "Bus No: " + bus.bus_number + 
+                           " | Driver ID: " + bus.driver_id;
+          busList.appendChild(li);
+      });
+
+  })
+  .catch(error => console.error("Error:", error));
+</script>
+
+</body>
+</html>
