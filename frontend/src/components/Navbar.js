@@ -1,23 +1,37 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
-function Navbar(){
+function Navbar({ role }) {
 
-  return(
+  return (
+    <div className="sidebar">
 
-    <nav className="navbar navbar-dark bg-dark">
+      {/* ADMIN SIDEBAR */}
+      {role === "admin" && (
+        <>
+          <Link to="/dashboard">Dashboard</Link>
+          <Link to="/buses">Buses</Link>
+          <Link to="/drivers">Drivers</Link>
+          <Link to="/colleges">Colleges</Link>
+        </>
+      )}
 
-      <div className="container">
+      {/* DRIVER SIDEBAR */}
+      {role === "driver" && (
+        <>
+          <Link to="/driver">Driver Dashboard</Link>
+        </>
+      )}
 
-        <span className="navbar-brand mb-0 h1">
-          Smart Bus Tracking System
-        </span>
+      {/* STUDENT SIDEBAR */}
+      {role === "student" && (
+        <>
+          <Link to="/student">Track Bus</Link>
+        </>
+      )}
 
-      </div>
-
-    </nav>
-
+    </div>
   );
-
 }
 
 export default Navbar;

@@ -17,19 +17,19 @@ function App() {
 
   return (
     <>
-      <Navbar />
+      <Navbar role={role} />
 
       <Layout>
 
         <Routes>
 
-          <Route path="/" element={<StudentDashboard />} />
+          <Route path="/Students" element={<StudentDashboard />} />
 
-          <Route path="/buses" element={<DriverDashboard />} />
+          {/* <Route path="/buses" element={<DriverDashboard />} /> */}
 
-          <Route path="/drivers" element={<DriverDashboard />} />
+          <Route path="/Drivers" element={<DriverDashboard />} />
 
-          <Route path="/colleges" element={<AdminDashboard />} />
+          <Route path="/Admin" element={<AdminDashboard />} />
 
         </Routes>
 
