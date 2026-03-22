@@ -164,215 +164,219 @@ function DriverDashboard() {
   return (
 
     <div className="container mt-4">
+      <div className="card shadow p-4">
 
-      <h2>Driver Dashboard</h2>
+        <h2 className="mb-4 fw-bold text-success">
+          🚍 Driver Dashboard
+        </h2>
 
-      {/* ===============================
-          COLLEGE SELECTION PAGE
-      =============================== */}
+        {/* ===============================
+            COLLEGE SELECTION PAGE
+        =============================== */}
 
-      {!selectedCollege && (
+        {!selectedCollege && (
 
-        <div className="mt-4">
+          <div className="mt-4">
 
-          <h5>Select College</h5>
+            <h5>Select College</h5>
 
-          <input
-            className="form-control mb-3"
-            placeholder="Search college..."
-            value={search}
-            onChange={(e)=>setSearch(e.target.value)}
-          />
+            <input
+              className="form-control mb-3"
+              placeholder="Search college..."
+              value={search}
+              onChange={(e)=>setSearch(e.target.value)}
+            />
 
-          {colleges
-            .filter(college =>
-              college.college_name.toLowerCase().includes(search.toLowerCase())
-            )
-            .map(college => (
+            {colleges
+              .filter(college =>
+                college.college_name.toLowerCase().includes(search.toLowerCase())
+              )
+              .map(college => (
+
+                <div
+                  key={college.college_id}
+                  className="option-card"
+                  onClick={()=>setSelectedCollege(college.college_id)}
+                >
+                  {college.college_name}
+                </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+        {/* ===============================
+            DRIVER OPTIONS
+        =============================== */}
+
+        {selectedCollege && !mode && (
+
+          <>
+
+            <div className="d-flex gap-3 mt-3 flex-wrap">
+              <button
+                className="btn btn-secondary me-3" style={{fontSize: "18px"}}
+                onClick={()=>setSelectedCollege(null)}
+              >
+                Back
+              </button>
+
+              <button
+                className="btn btn-primary me-3"
+                onClick={()=>setMode("registered")}
+              >
+                Bus already registered
+              </button>
+
+              <button
+                className="btn btn-success me-3"
+                onClick={()=>setMode("new")}
+              >
+                New bus appointing now
+              </button>
+            </div>
+          </>
+
+        )}
+
+
+        {/* ===============================
+            REGISTERED BUS PAGE
+        =============================== */}
+
+        {mode === "registered" && !selectedBus && (
+
+          <div className="mt-4">
+
+            <button
+              className="btn btn-secondary mb-3"
+              onClick={()=>setMode(null)}
+            >
+              Back
+            </button>
+
+            <input
+              className="form-control mb-3"
+              placeholder="Search bus number..."
+              value={search}
+              onChange={(e)=>setSearch(e.target.value)}
+            />
+
+            {filteredBuses.map(bus=>(
 
               <div
-                key={college.college_id}
-                className="card p-2 mb-2"
-                style={{cursor:"pointer"}}
-                onClick={()=>setSelectedCollege(college.college_id)}
+                key={bus.bus_id}
+                className="option-card"
+                onClick={()=>setSelectedBus(bus)}
               >
-                {college.college_name}
+                {bus.bus_number}
               </div>
 
-          ))}
+            ))}
 
-        </div>
+          </div>
 
-      )}
-
-      {/* ===============================
-          DRIVER OPTIONS
-      =============================== */}
-
-      {selectedCollege && !mode && (
-
-        <>
-          <button
-            className="btn btn-secondary mb-3"
-            onClick={()=>setSelectedCollege(null)}
-          >
-            Back
-          </button>
-
-          <button
-            className="btn btn-primary me-3"
-            onClick={()=>setMode("registered")}
-          >
-            Bus already registered
-          </button>
-
-          <button
-            className="btn btn-success"
-            onClick={()=>setMode("new")}
-          >
-            New bus appointing now
-          </button>
-        </>
-
-      )}
+        )}
 
 
-      {/* ===============================
-          REGISTERED BUS PAGE
-      =============================== */}
+        {/* ===============================
+            BUS SELECTED
+        =============================== */}
 
-      {mode === "registered" && !selectedBus && (
+        {selectedBus && !started && (
 
-        <div className="mt-4">
+          <div className="mt-4">
 
-          <button
-            className="btn btn-secondary mb-3"
-            onClick={()=>setMode(null)}
-          >
-            Back
-          </button>
-
-          <input
-            className="form-control mb-3"
-            placeholder="Search bus number..."
-            value={search}
-            onChange={(e)=>setSearch(e.target.value)}
-          />
-
-          {filteredBuses.map(bus=>(
-
-            <div
-              key={bus.bus_id}
-              className="card p-2 mb-2"
-              style={{cursor:"pointer"}}
-              onClick={()=>setSelectedBus(bus)}
+            <button
+              className="btn btn-secondary mb-3"
+              onClick={()=>setSelectedBus(null)}
             >
-              {bus.bus_number}
-            </div>
+              Back
+            </button>
 
-          ))}
+            <h4>Your Bus: {selectedBus.bus_number}</h4>
 
-        </div>
+            <button
+              className="btn btn-success"
+              onClick={startTrip}
+            >
+              Start Trip
+            </button>
 
-      )}
+          </div>
 
-
-      {/* ===============================
-          BUS SELECTED
-      =============================== */}
-
-      {selectedBus && !started && (
-
-        <div className="mt-4">
-
-          <button
-            className="btn btn-secondary mb-3"
-            onClick={()=>setSelectedBus(null)}
-          >
-            Back
-          </button>
-
-          <h4>Your Bus: {selectedBus.bus_number}</h4>
-
-          <button
-            className="btn btn-success"
-            onClick={startTrip}
-          >
-            Start Trip
-          </button>
-
-        </div>
-
-      )}
+        )}
 
 
-      {/* ===============================
-          TRIP RUNNING
-      =============================== */}
+        {/* ===============================
+            TRIP RUNNING
+        =============================== */}
 
-      {started && location && (
+        {started && location && (
 
-        <div className="mt-4">
+          <div className="mt-4">
 
-          <h4 className="text-success">Trip is running 🚍</h4>
+            <h4 className="text-success">Trip is running 🚍</h4>
 
-          <button
-            className="btn btn-danger mb-3"
-            onClick={endTrip}
-          >
-            End Trip
-          </button>
+            <button
+              className="btn btn-danger mb-3"
+              onClick={endTrip}
+            >
+              End Trip
+            </button>
 
-          <MapComponent
-            lat={location.latitude}
-            lng={location.longitude}
-          />
+            <MapComponent
+              lat={location.latitude}
+              lng={location.longitude}
+            />
 
-        </div>
+          </div>
 
-      )}
+        )}
 
 
-      {/* ===============================
-          NEW BUS PAGE
-      =============================== */}
+        {/* ===============================
+            NEW BUS PAGE
+        =============================== */}
 
-      {mode === "new" && (
+        {mode === "new" && (
 
-        <div className="mt-4">
+          <div className="mt-4">
 
-          <button
-            className="btn btn-secondary mb-3"
-            onClick={()=>setMode(null)}
-          >
-            Back
-          </button>
+            <button
+              className="btn btn-secondary mb-3"
+              onClick={()=>setMode(null)}
+            >
+              Back
+            </button>
 
-          <input
-            className="form-control mb-3"
-            placeholder="Enter Bus Number"
-            value={busNumber}
-            onChange={(e)=>setBusNumber(e.target.value)}
-          />
+            <input
+              className="form-control mb-3"
+              placeholder="Enter Bus Number"
+              value={busNumber}
+              onChange={(e)=>setBusNumber(e.target.value)}
+            />
 
-          <input
-            className="form-control mb-3"
-            placeholder="Enter Driver Name"
-            value={driverName}
-            onChange={(e)=>setDriverName(e.target.value)}
-          />
+            <input
+              className="form-control mb-3"
+              placeholder="Enter Driver Name"
+              value={driverName}
+              onChange={(e)=>setDriverName(e.target.value)}
+            />
 
-          <button
-            className="btn btn-success"
-            onClick={registerBus}
-          >
-            Register Bus
-          </button>
+            <button
+              className="btn btn-success"
+              onClick={registerBus}
+            >
+              Register Bus
+            </button>
 
-        </div>
+          </div>
 
-      )}
-
+        )}
+      </div>
     </div>
 
   );

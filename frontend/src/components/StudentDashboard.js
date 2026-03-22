@@ -170,9 +170,8 @@ function StudentDashboard() {
 
               <div
                 key={college.college_id}
-                className="card p-2 mb-2"
-                style={{cursor:"pointer"}}
-                onClick={()=>setSelectedCollege(college.college_id)}
+                className="option-card"
+                onClick={() => setSelectedCollege(college.college_id)}
               >
                 {college.college_name}
               </div>

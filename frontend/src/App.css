@@ -14,7 +14,7 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  /* background-color: #282c34; */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -26,6 +26,21 @@
 
 .App-link {
   color: #61dafb;
+}
+
+.option-card {
+  background-color: #1e1e1e;   /* black */
+  color: white;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.option-card:hover {
+  background-color: #333;
+  transform: scale(1.02);
 }
 
 @keyframes App-logo-spin {

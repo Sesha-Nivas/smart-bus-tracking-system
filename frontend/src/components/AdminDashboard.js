@@ -102,7 +102,7 @@ function AdminDashboard() {
 
           <h5>System Status</h5>
 
-          <p><b>Total Buses:</b> {buses.length}</p>
+          <div className="card shadow p-3 text-center"><p><b>Total Buses:</b> {buses.length}</p></div>
 
           <p><b>Running Buses:</b> {runningBuses}</p>
 
