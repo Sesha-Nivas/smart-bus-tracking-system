@@ -1,4 +1,4 @@
-.App {
+/* .App {
   text-align: center;
 }
 
@@ -14,7 +14,7 @@
 }
 
 .App-header {
-  /* background-color: #282c34; */
+  background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -24,14 +24,145 @@
   color: white;
 }
 
-.App-link {
+/* .App-link {
   color: #61dafb;
+} */
+
+/* .option-card {
+  background-color: #1e1e1e;    black 
+  color: white;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+} */
+
+/* .option-card:hover {
+  background-color: #333;
+  transform: scale(1.02);
+} */
+
+/* .card {
+  background: #1e293b !important;
+  color: white;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
 
 .option-card {
-  background-color: #1e1e1e;   /* black */
+  /* background: #2563eb;   blue 
   color: white;
-  padding: 12px;
+  padding: 14px;
+  margin: 10px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-weight: 500;
+}
+
+.option-card:hover {
+  background: #f97316;   orange 
+  transform: scale(1.03);
+} */
+
+/* input, .form-control {
+  background: #0f172a !important;
+  color: white !important;
+  border: 1px solid #334155;
+}
+
+input::placeholder {
+  color: #94a3b8;
+}
+
+.btn-primary {
+  background-color: #f97316 !important;  orange 
+  border: none;
+}
+
+.btn-success {
+  background-color: #fb923c !important;  light orange 
+  border: none;
+}
+
+.btn-secondary {
+  background-color: #334155 !important;
+} */
+
+/* h1, h2, h3, h4, h5 {
+  color: #ffffff;
+}
+
+.container {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.option-card {
+  background: #2563eb !important;   blue 
+  color: white !important;
+  padding: 14px;
+  margin: 10px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-weight: 500;
+}
+
+.option-card:hover {
+  background: #f97316 !important;  orange 
+  transform: scale(1.03);
+}
+
+.card {
+  background: #1e293b !important;
+  color: white !important;
+}
+
+.form-control {
+  background: #0f172a !important;
+  color: white !important;
+  border: 1px solid #334155 !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} */ 
+
+/* @keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} */
+
+body {
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  color: white;
+}
+
+/* CARD */
+.card {
+  background: #1e293b !important;
+  color: white !important;
+  border-radius: 12px;
+}
+
+/* OPTION BOX */
+.option-card {
+  background: #2563eb !important;
+  color: white !important;
+  padding: 14px;
   margin: 10px 0;
   border-radius: 10px;
   cursor: pointer;
@@ -39,16 +170,24 @@
 }
 
 .option-card:hover {
-  background-color: #333;
-  transform: scale(1.02);
+  background: #f97316 !important;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* INPUT */
+.form-control {
+  background: #0f172a !important;
+  color: white !important;
 }
 
+/* BUTTONS */
+.btn-primary {
+  background-color: #f97316 !important;
+}
+
+.btn-success {
+  background-color: #fb923c !important;
+}
+
+.btn-secondary {
+  background-color: #334155 !important;
+}

@@ -183,12 +183,19 @@ body {
 }
 
 body {
-  background-color: #87CEEB;  /* SKY BLUE */
+  /* background-color: #87CEEB;  SKY BLUE */
   margin: 0;
   padding: 0;
+}
+
+body {
+  background: linear-gradient(135deg, #0f172a, #1e3a8a);
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 html, body, #root {
   height: 100%;
   background-color: #87CEEB;
 }
+
