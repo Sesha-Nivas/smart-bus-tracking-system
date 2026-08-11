@@ -2,56 +2,157 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 
-// LOGIN
+/*
+==========================================
+LOGIN
+==========================================
+*/
+
 router.post("/login", async (req, res) => {
 
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  try {
+    try {
 
-    const [rows] = await db.query(
-      "SELECT * FROM users WHERE email=? AND password=?",
-      [email, password]
-    );
+        const [rows] = await db.query(
+            `
+            SELECT
+                id,
+                name,
+                email,
+                role,
+                college_id
+            FROM users
+            WHERE email = ?
+            AND password = ?
+            `,
+            [email, password]
+        );
 
-    if(rows.length === 0){
-      return res.status(401).json({message:"Invalid credentials"});
+        if (rows.length === 0) {
+
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Email or Password"
+            });
+
+        }
+
+        const user = rows[0];
+
+        return res.json({
+
+            success: true,
+
+            id: user.id,
+
+            name: user.name,
+
+            role: user.role,
+
+            college_id: user.college_id
+
+        });
+
     }
 
-    const user = rows[0];
+    catch (err) {
 
-    res.json({
-      id:user.id,
-      name:user.name,
-      role:user.role
-    });
+        console.log(err);
 
-  } catch(error){
-    console.error(error);
-    res.status(500).json({error:error.message});
-  }
+        res.status(500).json({
+
+            success: false,
+
+            error: err.message
+
+        });
+
+    }
 
 });
 
-router.post("/signup", async (req,res)=>{
 
-  const {name,email,password,role} = req.body;
+/*
+==========================================
+REGISTER
+==========================================
+*/
 
-  try{
+router.post("/signup", async (req, res) => {
 
-    await db.query(
-      "INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)",
-      [name,email,password,role]
-    );
+    const {
 
-    res.json({message:"User registered successfully"});
+        name,
 
-  }catch(error){
+        email,
 
-    console.error(error);
-    res.status(500).json({error:error.message});
+        password,
 
-  }
+        role,
+
+        college_id
+
+    } = req.body;
+
+    try {
+
+        await db.query(
+
+            `
+            INSERT INTO users
+            (
+                name,
+                email,
+                password,
+                role,
+                college_id
+            )
+            VALUES
+            (
+                ?,?,?,?,?
+            )
+            `,
+
+            [
+
+                name,
+
+                email,
+
+                password,
+
+                role,
+
+                college_id
+
+            ]
+
+        );
+
+        res.json({
+
+            success: true,
+
+            message: "User Registered"
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+
+            success: false,
+
+            error: err.message
+
+        });
+
+    }
 
 });
 

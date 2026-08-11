@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import MapComponent from "./MapComponent";
 import { ToastContainer, toast } from "react-toastify";
@@ -6,8 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 function StudentDashboard() {
 
-  const [colleges, setColleges] = useState([]);
-  const [selectedCollege, setSelectedCollege] = useState(null);
+  const navigate = useNavigate();
 
   const [buses, setBuses] = useState([]);
   const [selectedBus, setSelectedBus] = useState("");
@@ -16,256 +16,260 @@ function StudentDashboard() {
   const [route, setRoute] = useState([]);
   const [alertShown, setAlertShown] = useState(false);
 
-  const [searchCollege, setSearchCollege] = useState("");
+  // Get selected college from login
+  const collegeName = localStorage.getItem("collegeName");
+  const collegeId = localStorage.getItem("collegeId");
 
-  const [studentLat, setStudentLat] = useState(null);
-  const [studentLng, setStudentLng] = useState(null);
-
-  // ============================
-  // Load Colleges
-  // ============================
-
+  // Load buses automatically
   useEffect(() => {
 
-    navigator.geolocation.getCurrentPosition((pos) => {
+    if (!collegeId) return;
 
-      setStudentLat(pos.coords.latitude);
-      setStudentLng(pos.coords.longitude);
-
-    });
-
-  }, []);
-  useEffect(() => {
-
-    API.get("/colleges")
-      .then(res => {
-        setColleges(res.data);
+    API.get(`/buses/${collegeId}`)
+      .then((res) => {
+        setBuses(res.data);
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.log(err));
 
-  }, []);
+  }, [collegeId]);
 
-
-  // ============================
-  // Load Buses for Selected College
-  // ============================
+  // Bus Near Alert
   useEffect(() => {
 
-    if(selectedCollege){
+    if (location && location.distance < 0.5 && !alertShown) {
 
-      API.get(`/buses/${selectedCollege}`)
-        .then(res => {
-          setBuses(res.data);
-        })
-        .catch(err => console.error(err));
-
-    }
-
-  }, [selectedCollege]);
-
-
-  // ============================
-  // Alert when bus is near
-  // ============================
-  useEffect(() => {
-
-    if(location && location.distance < 0.5 && !alertShown){
       toast.success("🚌 Bus is arriving soon!");
+
       setAlertShown(true);
+
     }
 
   }, [location, alertShown]);
 
-
-  // ============================
-  // Fetch Location
-  // ============================
+  // Fetch Bus Location
   const fetchLocation = (busId) => {
 
-    API.get(`/bus-location/${busId}`)
-      .then(res => {
+    API.get(`/bus-status/${busId}`)
 
-        if(!res.data){
+      .then(statusRes => {
+
+        if (!statusRes.data) {
+
           setLocation(null);
+
           return;
+
         }
 
-        setLocation(res.data);
+        if (statusRes.data.status !== "running") {
 
-        setRoute(prevRoute => [
-          ...prevRoute,
-          {
-            lat: parseFloat(res.data.latitude),
-            lng: parseFloat(res.data.longitude)
-          }
-        ]);
+          setLocation(null);
+
+          return;
+
+        }
+
+        API.get(`/bus-location/${busId}`)
+
+          .then(locRes => {
+
+            if (!locRes.data) {
+
+              setLocation(null);
+
+              return;
+
+            }
+
+            setLocation(locRes.data);
+
+            setRoute(prev => [
+
+              ...prev,
+
+              {
+
+                lat: parseFloat(locRes.data.latitude),
+
+                lng: parseFloat(locRes.data.longitude)
+
+              }
+
+            ]);
+
+          });
 
       })
-      .catch(err => console.error(err));
+
+      .catch(err => console.log(err));
+
   };
 
-
-  // ============================
-  // Bus Selection
-  // ============================
+  // Select Bus
   const handleBusChange = (e) => {
 
-    const busId = e.target.value;
+    const id = e.target.value;
 
-    setSelectedBus(busId);
+    setSelectedBus(id);
+
+    setLocation(null);
+
     setRoute([]);
+
     setAlertShown(false);
 
-    fetchLocation(busId);
+    fetchLocation(id);
 
   };
 
-
-  // ============================
-  // Refresh Location
-  // ============================
+  // Refresh Every 3 Seconds
   useEffect(() => {
 
     if (!selectedBus) return;
 
+    fetchLocation(selectedBus);
+
     const interval = setInterval(() => {
+
       fetchLocation(selectedBus);
-    }, 5000);
+
+    }, 3000);
 
     return () => clearInterval(interval);
 
   }, [selectedBus]);
 
-
   return (
 
-    <div style={{ maxWidth: "900px", margin: "0 auto", paddingTop: "20px" }}>
+    <div className="container py-4">
 
-      <h2 className="text-center mb-4">Student Bus Tracking</h2>
+      <button
+
+        className="btn btn-secondary mb-4"
+
+        onClick={() => navigate("/")}
+
+      >
+
+        ← Home
+
+      </button>
+
+      <h2 className="text-center mb-4">
+
+        🎓 Student Dashboard
+
+      </h2>
 
       <ToastContainer />
 
-      {/* ===============================
-          COLLEGE SELECTION PAGE
-      =============================== */}
+      <div className="card shadow p-4 mb-4">
 
-      {!selectedCollege && (
+        <h5>
 
-        <div className="card p-3 shadow">
+          College
 
-          <h5>Select College</h5>
+        </h5>
 
-          <input
-            className="form-control mb-3"
-            placeholder="Search college..."
-            value={searchCollege}
-            onChange={(e)=>setSearchCollege(e.target.value)}
-          />
+        <p>
 
-          {colleges
-            .filter(college =>
-              college.college_name.toLowerCase().includes(searchCollege.toLowerCase())
-            )
-            .map(college => (
+          <b>{collegeName}</b>
 
-              <div
-                key={college.college_id}
-                className="option-card"
-                onClick={() => setSelectedCollege(college.college_id)}
-              >
-                {college.college_name}
-              </div>
+        </p>
+
+        <label className="form-label">
+
+          Select Bus
+
+        </label>
+
+        <select
+
+          className="form-select"
+
+          value={selectedBus}
+
+          onChange={handleBusChange}
+
+        >
+
+          <option value="">
+
+            Select Bus
+
+          </option>
+
+          {buses.map(bus => (
+
+            <option
+
+              key={bus.bus_id}
+
+              value={bus.bus_id}
+
+            >
+
+              {bus.bus_number}
+
+            </option>
 
           ))}
 
-        </div>
+        </select>
 
-      )}
-
-
-      {/* ===============================
-          BUS SELECTION PAGE
-      =============================== */}
-
-      {selectedCollege && (
-
-        <div className="card p-3 shadow">
-
-          <button
-            className="btn btn-secondary mb-3"
-            onClick={()=>{
-              setSelectedCollege(null);
-              setSelectedBus("");
-              setLocation(null);
-              setRoute([]);
-              setAlertShown(false);
-            }}
-          >
-            Back
-          </button>
-
-          <label className="form-label">Select Bus</label>
-
-          <select
-            className="form-select"
-            value={selectedBus}
-            onChange={handleBusChange}
-          >
-
-            <option value="">Select Bus</option>
-
-            {buses.map(bus => (
-              <option key={bus.bus_id} value={bus.bus_id}>
-                {bus.bus_number}
-              </option>
-            ))}
-
-          </select>
-
-        </div>
-
-      )}
-
-
-      {/* ===============================
-          DRIVER NOT STARTED
-      =============================== */}
+      </div>
 
       {!location && selectedBus && (
-        <div className="alert alert-warning mt-3">
-          Driver has not started the trip yet 🚍
+
+        <div className="alert alert-warning">
+
+          Driver has not started the trip.
+
         </div>
+
       )}
-
-
-      {/* ===============================
-          BUS TRACKING
-      =============================== */}
 
       {location && (
 
-        <div className="mt-4">
+        <>
 
-          <div className="card p-3 shadow mb-3">
+          <div className="card shadow p-3 mb-3 bg-success text-white">
 
-            <h5>Bus Information</h5>
+            <h5>
 
-            <p><b>Distance:</b> {location.distance?.toFixed(2)} km</p>
-            <p><b>ETA:</b> {location.eta?.toFixed(2)} minutes</p>
+              🚌 Bus Live
+
+            </h5>
+
+            <p>
+
+              Distance :
+
+              {location.distance?.toFixed(2)} km
+
+            </p>
+
+            <p>
+
+              ETA :
+
+              {location.eta?.toFixed(2)} mins
+
+            </p>
 
           </div>
 
-          <div className="card shadow">
+          <MapComponent
 
-            <MapComponent
-              lat={location.latitude}
-              lng={location.longitude}
-              route={route}
-            />
+            lat={location.latitude}
 
-          </div>
+            lng={location.longitude}
 
-        </div>
+            route={route}
+
+          />
+
+        </>
 
       )}
 

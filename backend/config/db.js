@@ -4,7 +4,7 @@ const db = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "1234",
-  database: "bus_tracking",
+  database: "smart_bus_tracking",
   waitForConnections: true,
   connectionLimit: 10
 });

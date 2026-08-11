@@ -1,382 +1,1390 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import MapComponent from "./MapComponent";
 
 function DriverDashboard() {
 
+  // ============================
+  // DASHBOARD STATE
+  // ============================
+
   const [mode, setMode] = useState(null);
+
   const [buses, setBuses] = useState([]);
+
   const [search, setSearch] = useState("");
+
   const [busNumber, setBusNumber] = useState("");
-  const [driverName, setDriverName] = useState("");
+
   const [selectedBus, setSelectedBus] = useState(null);
 
-  const [started, setStarted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [error, setError] = useState("");
+
+  // ============================
+  // TRIP / GPS STATE
+  // ============================
+
+  const [tripStarted, setTripStarted] = useState(false);
+
   const [location, setLocation] = useState(null);
 
-  const [colleges, setColleges] = useState([]);
-  const [selectedCollege, setSelectedCollege] = useState(null);
+  const [route, setRoute] = useState([]);
 
-  const watchId = useRef(null);
+  const [gpsError, setGpsError] = useState("");
+
+  const [startingTrip, setStartingTrip] = useState(false);
+
+  const [endingTrip, setEndingTrip] = useState(false);
+
+  // GPS watcher reference
+  const watchIdRef = useRef(null);
+
+  // ============================
+  // LOGIN INFORMATION
+  // ============================
 
   const driverId = localStorage.getItem("userId");
 
-  // ==============================
-  // Load colleges
-  // ==============================
+  const collegeId = localStorage.getItem("collegeId");
+
+  const collegeName =
+    localStorage.getItem("collegeName") ||
+    "Your College";
+
+
+  // ============================
+  // LOAD COLLEGE BUSES
+  // ============================
+
+  const loadBuses = async () => {
+
+    if (!collegeId) {
+
+      setError(
+        "College information is missing. Please login again."
+      );
+
+      return;
+    }
+
+    try {
+
+      setLoading(true);
+
+      setError("");
+
+      const response = await API.get(
+        `/buses/${collegeId}`
+      );
+
+      setBuses(response.data);
+
+    } catch (err) {
+
+      console.error(
+        "Bus loading error:",
+        err
+      );
+
+      setError(
+        "Unable to load buses."
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
+  // ============================
+  // LOAD BUSES WHEN DASHBOARD OPENS
+  // ============================
+
   useEffect(() => {
 
-    API.get("/colleges")
-      .then(res => {
-        setColleges(res.data);
-      })
-      .catch(err => console.error(err));
+    loadBuses();
+
+    // Cleanup GPS when page is closed
+    return () => {
+
+      if (watchIdRef.current !== null) {
+
+        navigator.geolocation.clearWatch(
+          watchIdRef.current
+        );
+
+      }
+
+    };
 
   }, []);
 
 
-  // ==============================
-  // Fetch buses by college
-  // ==============================
-  useEffect(() => {
+  // ============================
+  // REGISTER NEW BUS
+  // ============================
 
-    if(mode === "registered" && selectedCollege){
+  const registerBus = async () => {
 
-      API.get(`/buses/${selectedCollege}`)
-        .then(res=>{
-          setBuses(res.data);
-        })
-        .catch(err=>console.error(err));
+    if (!busNumber.trim()) {
 
+      alert(
+        "Please enter bus number."
+      );
+
+      return;
     }
 
-  },[mode, selectedCollege]);
+    if (!driverId) {
+
+      alert(
+        "Driver ID not found. Please login again."
+      );
+
+      return;
+    }
+
+    if (!collegeId) {
+
+      alert(
+        "College ID not found. Please login again."
+      );
+
+      return;
+    }
 
 
-  // ==============================
-  // Register new bus
-  // ==============================
-  const registerBus = () => {
+    try {
 
-    API.post("/register-bus",{
-      bus_number:busNumber,
-      driver_name:driverName,
-      driver_id:driverId,
-      college_id:selectedCollege
-    })
-    .then(res=>{
-      alert("Bus registered successfully");
-      setMode("registered");
-    })
-    .catch(err=>console.error(err));
+      const response = await API.post(
+        "/register-bus",
+        {
+          bus_number: busNumber.trim(),
+          driver_id: driverId,
+          college_id: collegeId
+        }
+      );
+
+
+      if (response.data.success) {
+
+        alert(
+          "Bus registered successfully!"
+        );
+
+        setBusNumber("");
+
+        setMode("registered");
+
+        await loadBuses();
+
+      }
+
+    } catch (err) {
+
+      console.error(
+        "Bus registration error:",
+        err
+      );
+
+      if (
+        err.response &&
+        err.response.status === 409
+      ) {
+
+        alert(
+          "This bus number is already registered."
+        );
+
+      } else {
+
+        alert(
+          "Unable to register bus."
+        );
+
+      }
+
+    }
 
   };
 
 
-  // ==============================
-  // Start Trip
-  // ==============================
-  const startTrip = async () => {
+  // ============================
+  // FILTER BUSES
+  // ============================
 
-    if(!selectedBus){
-      alert("Select a bus first");
-      return;
+  const filteredBuses = buses.filter(
+    (bus) =>
+      bus.bus_number
+        .toLowerCase()
+        .includes(search.toLowerCase())
+  );
+
+
+  // ============================
+  // RESET
+  // ============================
+
+  const goBack = () => {
+
+    stopGpsWatcher();
+
+    setMode(null);
+
+    setSelectedBus(null);
+
+    setSearch("");
+
+    setTripStarted(false);
+
+    setLocation(null);
+
+    setRoute([]);
+
+    setGpsError("");
+
+  };
+
+
+  // ============================
+  // STOP GPS WATCHER
+  // ============================
+
+  const stopGpsWatcher = () => {
+
+    if (watchIdRef.current !== null) {
+
+      navigator.geolocation.clearWatch(
+        watchIdRef.current
+      );
+
+      watchIdRef.current = null;
+
     }
 
-    if(!navigator.geolocation){
-      alert("Geolocation is not supported by your browser");
-      return;
+  };
+
+
+  // ============================
+  // SEND LOCATION TO BACKEND
+  // ============================
+
+  const sendLocationToServer = async (
+    position
+  ) => {
+
+    if (!selectedBus) return;
+
+    const latitude =
+      position.coords.latitude;
+
+    const longitude =
+      position.coords.longitude;
+
+    const accuracy =
+      position.coords.accuracy;
+
+    const speed =
+      position.coords.speed;
+
+    // Show location immediately on driver screen
+    setLocation({
+      latitude,
+      longitude,
+      accuracy,
+      speed
+    });
+
+    // Add location to route
+    setRoute((previousRoute) => [
+
+      ...previousRoute,
+
+      {
+        lat: latitude,
+        lng: longitude
+      }
+
+    ]);
+
+
+    // Send location to backend
+    try {
+
+      await API.post(
+        "/bus-location",
+        {
+          bus_id: selectedBus.bus_id,
+
+          latitude,
+          longitude,
+
+          accuracy,
+
+          speed
+        }
+      );
+
+      console.log(
+        "Location sent:",
+        latitude,
+        longitude
+      );
+
+    } catch (err) {
+
+      console.error(
+        "Unable to send location:",
+        err
+      );
+
+      setGpsError(
+        "GPS is working, but location could not be saved to server."
+      );
+
     }
 
-    await API.post(`/start-trip/${selectedBus.bus_id}`);
+  };
 
-    setStarted(true);
 
-    watchId.current = navigator.geolocation.watchPosition(
+  // ============================
+  // GPS ERROR
+  // ============================
 
-      (position)=>{
+  const handleGpsError = (error) => {
 
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+    console.error(
+      "GPS Error:",
+      error
+    );
 
-        setLocation({
-          latitude:lat,
-          longitude:lng
-        });
+    let message =
+      "Unable to get your current location.";
 
-        API.post("/update-location",{
-          bus_id:selectedBus.bus_id,
-          latitude:lat,
-          longitude:lng
-        });
+    if (error.code === 1) {
+
+      message =
+        "Location permission denied. Please allow location access.";
+
+    } else if (error.code === 2) {
+
+      message =
+        "Your location is currently unavailable.";
+
+    } else if (error.code === 3) {
+
+      message =
+        "GPS request timed out. Please try again.";
+
+    }
+
+    setGpsError(message);
+
+  };
+
+
+  // ============================
+  // START GPS WATCHING
+  // ============================
+
+  const startGpsTracking = () => {
+
+    if (!navigator.geolocation) {
+
+      setGpsError(
+        "GPS is not supported by this device/browser."
+      );
+
+      return;
+
+    }
+
+
+    setGpsError("");
+
+    setRoute([]);
+
+
+    // Get current position immediately
+    navigator.geolocation.getCurrentPosition(
+
+      (position) => {
+
+        sendLocationToServer(
+          position
+        );
 
       },
 
-      (error)=>{
+      (error) => {
 
-        alert("Please enable location to start trip");
-        console.error(error);
+        handleGpsError(error);
 
       },
 
       {
-        enableHighAccuracy:true,
-        maximumAge:0,
-        timeout:10000
+        enableHighAccuracy: true,
+
+        timeout: 15000,
+
+        maximumAge: 0
+
       }
 
     );
 
+
+    // Continue watching location
+    watchIdRef.current =
+      navigator.geolocation.watchPosition(
+
+        (position) => {
+
+          sendLocationToServer(
+            position
+          );
+
+        },
+
+        (error) => {
+
+          handleGpsError(error);
+
+        },
+
+        {
+          enableHighAccuracy: true,
+
+          timeout: 15000,
+
+          maximumAge: 0
+        }
+
+      );
+
   };
 
 
-  // ==============================
-  // End Trip
-  // ==============================
-  const endTrip = async () => {
+  // ============================
+  // START TRIP
+  // ============================
 
-    if(!selectedBus) return;
+  const startTrip = async () => {
 
-    await API.post(`/end-trip/${selectedBus.bus_id}`);
+    if (!selectedBus) {
 
-    if(watchId.current){
-      navigator.geolocation.clearWatch(watchId.current);
+      alert(
+        "Please select a bus first."
+      );
+
+      return;
+
     }
 
-    setStarted(false);
-    setLocation(null);
-    setSelectedBus(null);
-    setMode(null);
 
-    alert("Trip ended. Location tracking stopped.");
+    try {
+
+      setStartingTrip(true);
+
+      setGpsError("");
+
+      const response =
+        await API.post(
+          "/start-trip",
+          {
+            bus_id:
+              selectedBus.bus_id,
+
+            driver_id:
+              selectedBus.driver_id ||
+              driverId
+          }
+        );
+
+
+      if (
+        response.data &&
+        response.data.status === "running"
+      ) {
+
+        setTripStarted(true);
+
+        setSelectedBus(
+          (previousBus) => ({
+            ...previousBus,
+
+            status: "running"
+          })
+        );
+
+
+        // Start GPS
+        startGpsTracking();
+
+      } else {
+
+        alert(
+          "Unable to start trip."
+        );
+
+      }
+
+    } catch (err) {
+
+      console.error(
+        "Start trip error:",
+        err
+      );
+
+      alert(
+        err.response?.data?.error ||
+        "Unable to start trip."
+      );
+
+    } finally {
+
+      setStartingTrip(false);
+
+    }
 
   };
 
 
-  // ==============================
-  // Search filter
-  // ==============================
-  const filteredBuses = buses.filter(bus =>
-    bus.bus_number.toLowerCase().includes(search.toLowerCase())
-  );
+  // ============================
+  // END TRIP
+  // ============================
 
+  const endTrip = async () => {
+
+    if (!selectedBus) return;
+
+
+    try {
+
+      setEndingTrip(true);
+
+
+      // Stop GPS first
+      stopGpsWatcher();
+
+
+      const response =
+        await API.post(
+          "/stop-trip",
+          {
+            bus_id:
+              selectedBus.bus_id,
+
+            driver_id:
+              selectedBus.driver_id ||
+              driverId
+          }
+        );
+
+
+      if (
+        response.data &&
+        response.data.status === "stopped"
+      ) {
+
+        setTripStarted(false);
+
+        setSelectedBus(
+          (previousBus) => ({
+            ...previousBus,
+
+            status: "stopped"
+          })
+        );
+
+
+        alert(
+          "Trip ended successfully."
+        );
+
+      } else {
+
+        alert(
+          "Unable to end trip."
+        );
+
+      }
+
+    } catch (err) {
+
+      console.error(
+        "End trip error:",
+        err
+      );
+
+      alert(
+        err.response?.data?.error ||
+        "Unable to end trip."
+      );
+
+    } finally {
+
+      setEndingTrip(false);
+
+    }
+
+  };
+
+
+  // ============================
+  // SELECT BUS
+  // ============================
+
+  const selectBus = (bus) => {
+
+    setSelectedBus(bus);
+
+    setTripStarted(
+      bus.status === "running"
+    );
+
+    setLocation(null);
+
+    setRoute([]);
+
+    setGpsError("");
+
+  };
+
+
+  // ============================
+  // RETURN UI
+  // ============================
 
   return (
 
-    <div className="container mt-4">
-      <div className="card shadow p-4">
+    <div
+      className="container mt-4"
+      style={{
+        maxWidth: "1000px"
+      }}
+    >
 
-        <h2 className="mb-4 fw-bold text-success">
-          🚍 Driver Dashboard
+      {/* ============================
+          HEADER
+      ============================ */}
+
+      <div
+        className="card shadow p-4 mb-4"
+        style={{
+          background:
+            "linear-gradient(135deg, #071b3a, #0b2d5c)",
+
+          color: "white",
+
+          borderRadius: "18px"
+        }}
+      >
+
+        <h2>
+          🚌 Driver Dashboard
         </h2>
 
-        {/* ===============================
-            COLLEGE SELECTION PAGE
-        =============================== */}
+        <p
+          style={{
+            marginBottom: 0
+          }}
+        >
 
-        {!selectedCollege && (
+          College:
 
-          <div className="mt-4">
+          <strong>
+            {" "}{collegeName}
+          </strong>
 
-            <h5>Select College</h5>
+        </p>
 
-            <input
-              className="form-control mb-3"
-              placeholder="Search college..."
-              value={search}
-              onChange={(e)=>setSearch(e.target.value)}
-            />
+      </div>
 
-            {colleges
-              .filter(college =>
-                college.college_name.toLowerCase().includes(search.toLowerCase())
-              )
-              .map(college => (
 
-                <div
-                  key={college.college_id}
-                  className="option-card"
-                  onClick={()=>setSelectedCollege(college.college_id)}
-                >
-                  {college.college_name}
-                </div>
+      {/* ============================
+          ERROR
+      ============================ */}
 
-            ))}
+      {error && (
+
+        <div className="alert alert-danger">
+
+          {error}
+
+        </div>
+
+      )}
+
+
+      {/* ============================
+          MAIN OPTIONS
+      ============================ */}
+
+      {!mode && !selectedBus && (
+
+        <div
+          className="card shadow p-4"
+        >
+
+          <h4 className="mb-3">
+
+            Bus Management
+
+          </h4>
+
+          <p>
+
+            Select an existing bus or
+            register a new bus.
+
+          </p>
+
+
+          <div
+            className="d-flex gap-3 flex-wrap"
+          >
+
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                setMode("registered")
+              }
+            >
+
+              🚌 Bus Already Registered
+
+            </button>
+
+
+            <button
+              className="btn btn-success"
+              onClick={() =>
+                setMode("new")
+              }
+            >
+
+              ➕ Register New Bus
+
+            </button>
 
           </div>
 
-        )}
+        </div>
 
-        {/* ===============================
-            DRIVER OPTIONS
-        =============================== */}
-
-        {selectedCollege && !mode && (
-
-          <>
-
-            <div className="d-flex gap-3 mt-3 flex-wrap">
-              <button
-                className="btn btn-secondary me-3" style={{fontSize: "18px"}}
-                onClick={()=>setSelectedCollege(null)}
-              >
-                Back
-              </button>
-
-              <button
-                className="btn btn-primary me-3"
-                onClick={()=>setMode("registered")}
-              >
-                Bus already registered
-              </button>
-
-              <button
-                className="btn btn-success me-3"
-                onClick={()=>setMode("new")}
-              >
-                New bus appointing now
-              </button>
-            </div>
-          </>
-
-        )}
+      )}
 
 
-        {/* ===============================
-            REGISTERED BUS PAGE
-        =============================== */}
+      {/* ============================
+          REGISTERED BUSES
+      ============================ */}
 
-        {mode === "registered" && !selectedBus && (
+      {mode === "registered" &&
+        !selectedBus && (
 
-          <div className="mt-4">
+        <div
+          className="card shadow p-4"
+        >
+
+          <div
+            className="
+              d-flex
+              justify-content-between
+              align-items-center
+              mb-3
+            "
+          >
+
+            <h4>
+
+              🚌 Registered Buses
+
+            </h4>
+
 
             <button
-              className="btn btn-secondary mb-3"
-              onClick={()=>setMode(null)}
+              className="btn btn-secondary"
+              onClick={goBack}
             >
-              Back
+
+              ← Back
+
             </button>
 
-            <input
-              className="form-control mb-3"
-              placeholder="Search bus number..."
-              value={search}
-              onChange={(e)=>setSearch(e.target.value)}
-            />
+          </div>
 
-            {filteredBuses.map(bus=>(
+
+          <input
+            className="form-control mb-3"
+            placeholder="Search bus number..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+
+
+          {loading && (
+
+            <p>
+              Loading buses...
+            </p>
+
+          )}
+
+
+          {!loading &&
+            filteredBuses.length === 0 && (
+
+            <div
+              className="alert alert-warning"
+            >
+
+              No buses are registered for
+              {` ${collegeName}`}.
+
+              <br />
+
+              You can register a new bus.
+
+              <br />
+
+              <button
+                className="btn btn-success mt-3"
+                onClick={() =>
+                  setMode("new")
+                }
+              >
+
+                ➕ Register New Bus
+
+              </button>
+
+            </div>
+
+          )}
+
+
+          {!loading &&
+            filteredBuses.map((bus) => (
+
+            <div
+              key={bus.bus_id}
+              className="
+                card
+                shadow-sm
+                p-3
+                mb-3
+              "
+              style={{
+                borderRadius: "12px"
+              }}
+            >
 
               <div
-                key={bus.bus_id}
-                className="option-card"
-                onClick={()=>setSelectedBus(bus)}
+                className="
+                  d-flex
+                  justify-content-between
+                  align-items-center
+                "
               >
-                {bus.bus_number}
+
+                <div>
+
+                  <h5>
+
+                    🚌 {bus.bus_number}
+
+                  </h5>
+
+                  <small>
+
+                    Status:{" "}
+
+                    <strong>
+
+                      {bus.status}
+
+                    </strong>
+
+                  </small>
+
+                </div>
+
+
+                <button
+                  className="
+                    btn
+                    btn-outline-primary
+                  "
+                  onClick={() =>
+                    selectBus(bus)
+                  }
+                >
+
+                  Select
+
+                </button>
+
               </div>
 
-            ))}
+            </div>
 
-          </div>
+          ))}
 
-        )}
+        </div>
+
+      )}
 
 
-        {/* ===============================
-            BUS SELECTED
-        =============================== */}
+      {/* ============================
+          REGISTER NEW BUS
+      ============================ */}
 
-        {selectedBus && !started && (
+      {mode === "new" && (
 
-          <div className="mt-4">
+        <div
+          className="card shadow p-4"
+        >
+
+          <div
+            className="
+              d-flex
+              justify-content-between
+              align-items-center
+              mb-4
+            "
+          >
+
+            <h4>
+
+              ➕ Register New Bus
+
+            </h4>
+
 
             <button
-              className="btn btn-secondary mb-3"
-              onClick={()=>setSelectedBus(null)}
+              className="btn btn-secondary"
+              onClick={goBack}
             >
-              Back
-            </button>
 
-            <h4>Your Bus: {selectedBus.bus_number}</h4>
+              ← Back
 
-            <button
-              className="btn btn-success"
-              onClick={startTrip}
-            >
-              Start Trip
-            </button>
-
-          </div>
-
-        )}
-
-
-        {/* ===============================
-            TRIP RUNNING
-        =============================== */}
-
-        {started && location && (
-
-          <div className="mt-4">
-
-            <h4 className="text-success">Trip is running 🚍</h4>
-
-            <button
-              className="btn btn-danger mb-3"
-              onClick={endTrip}
-            >
-              End Trip
-            </button>
-
-            <MapComponent
-              lat={location.latitude}
-              lng={location.longitude}
-            />
-
-          </div>
-
-        )}
-
-
-        {/* ===============================
-            NEW BUS PAGE
-        =============================== */}
-
-        {mode === "new" && (
-
-          <div className="mt-4">
-
-            <button
-              className="btn btn-secondary mb-3"
-              onClick={()=>setMode(null)}
-            >
-              Back
-            </button>
-
-            <input
-              className="form-control mb-3"
-              placeholder="Enter Bus Number"
-              value={busNumber}
-              onChange={(e)=>setBusNumber(e.target.value)}
-            />
-
-            <input
-              className="form-control mb-3"
-              placeholder="Enter Driver Name"
-              value={driverName}
-              onChange={(e)=>setDriverName(e.target.value)}
-            />
-
-            <button
-              className="btn btn-success"
-              onClick={registerBus}
-            >
-              Register Bus
             </button>
 
           </div>
 
-        )}
-      </div>
+
+          <div
+            className="alert alert-info"
+          >
+
+            This bus will be registered
+            under:
+
+            <br />
+
+            <strong>
+              {collegeName}
+            </strong>
+
+          </div>
+
+
+          <label
+            className="form-label"
+          >
+
+            Bus Number
+
+          </label>
+
+
+          <input
+            className="form-control mb-3"
+            placeholder="Example: TN01AB1234"
+            value={busNumber}
+            onChange={(e) =>
+              setBusNumber(
+                e.target.value
+              )
+            }
+          />
+
+
+          <button
+            className="btn btn-success"
+            onClick={registerBus}
+          >
+
+            🚌 Register Bus
+
+          </button>
+
+        </div>
+
+      )}
+
+
+      {/* ============================
+          SELECTED BUS / LIVE TRACKING
+      ============================ */}
+
+      {selectedBus && (
+
+        <div
+          className="card shadow p-4"
+        >
+
+          <button
+            className="btn btn-secondary mb-4"
+            onClick={() => {
+
+              if (!tripStarted) {
+
+                setSelectedBus(null);
+
+              }
+
+            }}
+            disabled={tripStarted}
+          >
+
+            ← Back to Buses
+
+          </button>
+
+
+          {/* BUS INFORMATION */}
+
+          <div
+            className="mb-3"
+          >
+
+            <h3>
+
+              🚌 {selectedBus.bus_number}
+
+            </h3>
+
+
+            <p>
+
+              College:
+
+              <strong>
+                {" "}{collegeName}
+              </strong>
+
+            </p>
+
+
+            <p>
+
+              Status:
+
+              <strong
+                style={{
+                  marginLeft: "8px",
+
+                  color:
+                    tripStarted
+                      ? "green"
+                      : "red"
+                }}
+              >
+
+                {tripStarted
+                  ? "RUNNING"
+                  : "STOPPED"}
+
+              </strong>
+
+            </p>
+
+          </div>
+
+
+          {/* ============================
+              START TRIP
+          ============================ */}
+
+          {!tripStarted && (
+
+            <div
+              className="text-center mb-4"
+            >
+
+              <div
+                className="alert alert-info"
+              >
+
+                🚌 Bus is ready.
+
+                <br />
+
+                Click <strong>
+                  Start Trip
+                </strong> to begin GPS tracking.
+
+              </div>
+
+
+              <button
+                className="
+                  btn
+                  btn-success
+                  btn-lg
+                  px-5
+                "
+                onClick={startTrip}
+                disabled={startingTrip}
+              >
+
+                {startingTrip
+                  ? "Starting..."
+                  : "▶ Start Trip"}
+
+              </button>
+
+            </div>
+
+          )}
+
+
+          {/* ============================
+              GPS ERROR
+          ============================ */}
+
+          {gpsError && (
+
+            <div
+              className="alert alert-danger"
+            >
+
+              📍 {gpsError}
+
+            </div>
+
+          )}
+
+
+          {/* ============================
+              LIVE STATUS
+          ============================ */}
+
+          {tripStarted && (
+
+            <div
+              className="alert alert-success"
+            >
+
+              🟢 <strong>
+                Trip is LIVE
+              </strong>
+
+              <br />
+
+              Your mobile GPS location
+              is being tracked.
+
+            </div>
+
+          )}
+
+
+          {/* ============================
+              MAP
+          ============================ */}
+
+          {tripStarted && (
+
+            <div
+              className="card shadow-sm mb-4"
+              style={{
+                overflow: "hidden"
+              }}
+            >
+
+              <div
+                className="p-3"
+                style={{
+                  background: "#071b3a",
+                  color: "white"
+                }}
+              >
+
+                <h5
+                  style={{
+                    margin: 0
+                  }}
+                >
+
+                  📍 Live Bus Location
+
+                </h5>
+
+              </div>
+
+
+              {location ? (
+
+                <MapComponent
+                  lat={location.latitude}
+                  lng={location.longitude}
+                  route={route}
+                />
+
+              ) : (
+
+                <div
+                  style={{
+                    height: "400px",
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    justifyContent: "center",
+
+                    background: "#e9f2f7",
+
+                    color: "#071b3a",
+
+                    fontSize: "18px"
+                  }}
+                >
+
+                  📍 Waiting for GPS location...
+
+                </div>
+
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* ============================
+              GPS INFORMATION
+          ============================ */}
+
+          {tripStarted && location && (
+
+            <div
+              className="card p-3 mb-4"
+              style={{
+                background: "#f5f7fa"
+              }}
+            >
+
+              <h5>
+                📡 Current GPS Information
+              </h5>
+
+
+              <p>
+
+                <strong>
+                  Latitude:
+                </strong>{" "}
+
+                {location.latitude}
+
+              </p>
+
+
+              <p>
+
+                <strong>
+                  Longitude:
+                </strong>{" "}
+
+                {location.longitude}
+
+              </p>
+
+
+              <p>
+
+                <strong>
+                  Accuracy:
+                </strong>{" "}
+
+                {location.accuracy
+                  ? `${Math.round(
+                      location.accuracy
+                    )} meters`
+                  : "Calculating..."}
+
+              </p>
+
+
+              {location.speed !== null &&
+                location.speed !== undefined && (
+
+                <p>
+
+                  <strong>
+                    Speed:
+                  </strong>{" "}
+
+                  {location.speed >= 0
+                    ? `${(
+                        location.speed * 3.6
+                      ).toFixed(1)} km/h`
+                    : "Not available"}
+
+                </p>
+
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* ============================
+              END TRIP
+          ============================ */}
+
+          {tripStarted && (
+
+            <div
+              className="text-center"
+            >
+
+              <button
+                className="
+                  btn
+                  btn-danger
+                  btn-lg
+                  px-5
+                "
+                onClick={endTrip}
+                disabled={endingTrip}
+              >
+
+                {endingTrip
+                  ? "Ending Trip..."
+                  : "⏹ End Trip"}
+
+              </button>
+
+            </div>
+
+          )}
+
+        </div>
+
+      )}
+
     </div>
 
   );
