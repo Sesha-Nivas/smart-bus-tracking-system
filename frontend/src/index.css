@@ -1,0 +1,42 @@
+.hero-card{
+    background:rgba(255,255,255,.12);
+    backdrop-filter:blur(18px);
+    border-radius:25px;
+    padding:30px;
+    border:1px solid rgba(255,255,255,.2);
+    color:white;
+}
+
+.hero-card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.card-label{
+    color:#dbeafe;
+    margin-bottom:5px;
+}
+
+.status-chip{
+    background:#22c55e;
+    color:white;
+    padding:8px 18px;
+    border-radius:30px;
+    font-size:14px;
+}
+
+.route-summary,
+.route-details,
+.small-cards{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-top:25px;
+}
+
+.small-card{
+    background:rgba(255,255,255,.08);
+    padding:18px;
+    border-radius:16px;
+}
