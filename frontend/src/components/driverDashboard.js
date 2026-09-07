@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import MapComponent from "./MapComponent";
 
@@ -35,9 +35,7 @@ function DriverDashboard() {
 
   const [route, setRoute] = useState([]);
 
-  const [gpsError, setGpsError] = useState("");
-
-  const [startingTrip, setStartingTrip] = useState(false);
+  const [, setGpsError] = useState("");
 
   const [endingTrip, setEndingTrip] = useState(false);
 
@@ -113,7 +111,7 @@ function DriverDashboard() {
     return () => clearInterval(interval);
 
   }, [selectedBus]);
-  const loadBuses = async () => {
+  const loadBuses = useCallback(async () => {
 
     if (!collegeId) {
 
@@ -153,7 +151,7 @@ function DriverDashboard() {
 
     }
 
-  };
+  }, [collegeId]);
 
 
   // ============================
@@ -177,7 +175,7 @@ function DriverDashboard() {
 
     };
 
-  }, []);
+  }, [loadBuses]);
 
 
   // ============================
